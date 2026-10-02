@@ -90,24 +90,24 @@ h1{margin:0;position:relative;z-index:1;line-height:0}
 </main>
 <script>
 /* Eight-Line Field, horizontals only: the left boundary travels inward with a digital dissolve.
-   ~6s motion, ~5s silence. No glow, blur, colour or extra lines. Static under reduced motion. */
+   Continuous: the boundary travels in and back with no pause; the four lines step in length by an equal increment. No glow, blur, colour or extra lines. Static under reduced motion. */
 (function(){
   var page=document.querySelector('.a8-page'),cv=document.querySelector('.a8-lines');
   if(!cv||!cv.getContext||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   var ctx=cv.getContext('2d'),W=0,H=0,dpr=1;
-  var Y=[0.8167,0.8458,0.875,0.9042],START=0.5266,COLOR='197,208,220';
-  var MOTION=6,CYCLE=11,REST=0.6,STAGGER=0.11,TRAVEL=168,SOFT=90,EDGE=42,CELL=2;
+  var Y=[0.8167,0.8458,0.875,0.9042],START=0.5266,STEP=0.065,COLOR='197,208,220';
+  var PERIOD=7,REST=0.6,STAGGER=0.11,TRAVEL=168,SOFT=90,EDGE=42,CELL=2;
   var freeze=(location.search.match(/[?&]t=([0-9.]+)/)||[])[1];
   function size(){dpr=Math.min(window.devicePixelRatio||1,2);W=page.clientWidth;H=page.clientHeight;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
   function ease(x){return x<0?0:x>1?1:x*x*(3-2*x)}
   function hash(a,b,c){var n=Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453;return n-Math.floor(n)}
   function draw(t){
     ctx.clearRect(0,0,W,H);
-    var k=Math.min(1,W/1280),travel=TRAVEL*k,soft=SOFT*k,edge=EDGE*k,x0=Math.round(W*START);
+    var k=Math.min(1,W/1280),travel=TRAVEL*k,soft=SOFT*k,edge=EDGE*k,xs=W*START,step=W*STEP;
     for(var i=0;i<4;i++){
-      var u=t-i*STAGGER,y=Math.round(H*Y[i])+0.5;
-      var pos=u<=0||u>=MOTION?0:(u<3.4?ease(u/3.4):1-ease((u-3.4)/2.6));
-      var amt=u<=0||u>=MOTION?0:Math.min(ease(u/1.2),ease((MOTION-u)/1.6));
+      var u=t-i*STAGGER,y=Math.round(H*Y[i])+0.5,x0=Math.round(xs-i*step);
+      var pos=(1-Math.cos(2*Math.PI*u/PERIOD))/2;
+      var amt=0.55+0.45*pos;
       var front=x0+travel*pos;
       var sw=soft*(REST+(1-REST)*amt),ew=edge*amt,tick=Math.floor(u*14),solid=front+ew+sw;
       ctx.fillStyle='rgba('+COLOR+',1)';ctx.fillRect(solid,y-0.5,W-solid,1);
@@ -122,17 +122,11 @@ h1{margin:0;position:relative;z-index:1;line-height:0}
       }
     }
   }
-  var t0=performance.now(),timer=0;
-  function frame(now){
-    var t=((now-t0)/1000)%CYCLE;
-    draw(t);
-    if(t<MOTION+3*STAGGER+0.1)requestAnimationFrame(frame);
-    else timer=setTimeout(function(){requestAnimationFrame(frame)},(CYCLE-t)*1000);
-  }
+  var t0=performance.now();
+  function frame(now){draw((now-t0)/1000);requestAnimationFrame(frame)}
   size();page.classList.add('a8-live');
   if(freeze!==undefined){draw(parseFloat(freeze));addEventListener('resize',function(){size();draw(parseFloat(freeze))});return}
-  addEventListener('resize',function(){size();draw(((performance.now()-t0)/1000)%CYCLE)});
-  t0=performance.now()-(CYCLE-2)*1000; /* first run starts 2s after load */
+  addEventListener('resize',size);
   requestAnimationFrame(frame);
 })();
 </script>
