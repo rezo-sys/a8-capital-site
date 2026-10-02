@@ -70,7 +70,7 @@ body{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,mon
 .a8-page{position:relative;min-height:100vh;min-height:100svh;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:0 clamp(24px,6.25vw,96px)}
 .a8-field::before,.a8-field::after{content:"";position:absolute;pointer-events:none;z-index:0}
 .a8-field::before{inset:0;background-image:linear-gradient(to right,var(--a8-field-color) 0 1px,transparent 1px),linear-gradient(to right,var(--a8-field-color) 0 1px,transparent 1px),linear-gradient(to right,var(--a8-field-color) 0 1px,transparent 1px),linear-gradient(to right,var(--a8-field-color) 0 1px,transparent 1px);background-repeat:no-repeat;background-size:1px 100%,1px 100%,1px 100%,1px 100%;background-position:86.56% 0,89.61% 0,92.66% 0,95.70% 0}
-.a8-field::after{top:0;bottom:0;right:0;left:52.66%;background-image:linear-gradient(to bottom,var(--a8-field-color) 0 1px,transparent 1px),linear-gradient(to bottom,var(--a8-field-color) 0 1px,transparent 1px),linear-gradient(to bottom,var(--a8-field-color) 0 1px,transparent 1px),linear-gradient(to bottom,var(--a8-field-color) 0 1px,transparent 1px);background-repeat:no-repeat;background-size:100% 1px,100% 1px,100% 1px,100% 1px;background-position:0 81.67%,0 84.58%,0 87.50%,0 90.42%}
+.a8-field::after{-webkit-mask-image:linear-gradient(to right,transparent,#000 54px);mask-image:linear-gradient(to right,transparent,#000 54px);top:0;bottom:0;right:0;left:52.66%;background-image:linear-gradient(to bottom,var(--a8-field-color) 0 1px,transparent 1px),linear-gradient(to bottom,var(--a8-field-color) 0 1px,transparent 1px),linear-gradient(to bottom,var(--a8-field-color) 0 1px,transparent 1px),linear-gradient(to bottom,var(--a8-field-color) 0 1px,transparent 1px);background-repeat:no-repeat;background-size:100% 1px,100% 1px,100% 1px,100% 1px;background-position:0 81.67%,0 84.58%,0 87.50%,0 90.42%}
 h1{margin:0;position:relative;z-index:1;line-height:0}
 .a8-lockup{display:block;width:clamp(320px,34vw,520px);max-width:100%;height:auto}
 .a8-rule{position:relative;z-index:1;width:clamp(320px,34vw,520px);max-width:100%;height:1px;background:var(--a8-line);margin:clamp(28px,4vh,48px) 0 clamp(16px,2.2vh,24px)}
@@ -90,13 +90,13 @@ h1{margin:0;position:relative;z-index:1;line-height:0}
 </main>
 <script>
 /* Eight-Line Field, horizontals only: the left boundary travels inward with a digital dissolve.
-   ~6s motion, ~10s silence. No glow, blur, colour or extra lines. Static under reduced motion. */
+   ~6s motion, ~5s silence. No glow, blur, colour or extra lines. Static under reduced motion. */
 (function(){
   var page=document.querySelector('.a8-page'),cv=document.querySelector('.a8-lines');
   if(!cv||!cv.getContext||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   var ctx=cv.getContext('2d'),W=0,H=0,dpr=1;
   var Y=[0.8167,0.8458,0.875,0.9042],START=0.5266,COLOR='197,208,220';
-  var MOTION=6,CYCLE=16,STAGGER=0.11,TRAVEL=168,SOFT=90,EDGE=42,CELL=2;
+  var MOTION=6,CYCLE=11,REST=0.6,STAGGER=0.11,TRAVEL=168,SOFT=90,EDGE=42,CELL=2;
   var freeze=(location.search.match(/[?&]t=([0-9.]+)/)||[])[1];
   function size(){dpr=Math.min(window.devicePixelRatio||1,2);W=page.clientWidth;H=page.clientHeight;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
   function ease(x){return x<0?0:x>1?1:x*x*(3-2*x)}
@@ -109,12 +109,11 @@ h1{margin:0;position:relative;z-index:1;line-height:0}
       var pos=u<=0||u>=MOTION?0:(u<3.4?ease(u/3.4):1-ease((u-3.4)/2.6));
       var amt=u<=0||u>=MOTION?0:Math.min(ease(u/1.2),ease((MOTION-u)/1.6));
       var front=x0+travel*pos;
-      if(amt<0.002){ctx.fillStyle='rgba('+COLOR+',1)';ctx.fillRect(x0,y-0.5,W-x0,1);continue}
-      var sw=soft*amt,ew=edge*amt,tick=Math.floor(u*14),solid=front+ew+sw;
+      var sw=soft*(REST+(1-REST)*amt),ew=edge*amt,tick=Math.floor(u*14),solid=front+ew+sw;
       ctx.fillStyle='rgba('+COLOR+',1)';ctx.fillRect(solid,y-0.5,W-solid,1);
-      for(var x=front-ew*0.9;x<solid;x+=CELL){
+      for(var x=Math.floor(front-ew*0.9);x<solid;x+=CELL){
         var d=x-front,a;
-        if(d>=ew){a=0.35+0.65*ease((d-ew)/sw);a*=0.9+0.1*hash(Math.floor(x/6),i,tick)}
+        if(d>=ew){var b=0.35*amt;a=b+(1-b)*ease((d-ew)/sw);a*=1-0.1*amt*hash(Math.floor(x/6),i,tick)}
         else{var dens=d<0?0.10*(1+d/(ew*0.9)):0.12+0.6*(d/ew);dens*=0.75+0.5*hash(Math.floor(x/9),i+7,Math.floor(u*5));
              if(hash(Math.floor(x/CELL),i,tick)>dens)continue;a=0.45+0.4*(d<0?0:d/ew)}
         ctx.fillStyle='rgba('+COLOR+','+a.toFixed(3)+')';
