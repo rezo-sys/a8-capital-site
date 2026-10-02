@@ -76,13 +76,66 @@ h1{margin:0;position:relative;z-index:1;line-height:0}
 .a8-rule{position:relative;z-index:1;width:clamp(320px,34vw,520px);max-width:100%;height:1px;background:var(--a8-line);margin:clamp(28px,4vh,48px) 0 clamp(16px,2.2vh,24px)}
 .a8-status{position:relative;z-index:1;margin:0;font-size:clamp(12px,0.95vw,15px);font-weight:500;letter-spacing:0.14em;line-height:1.6;color:var(--a8-ink-faint);text-transform:uppercase}
 @media (max-width:720px){.a8-status span{display:block}.a8-status .a8-dot{display:none}.a8-status{font-size:11px;letter-spacing:0.1em}.a8-lockup,.a8-rule{width:100%;max-width:320px}}
+.a8-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;display:none}
+.a8-live.a8-field::after{display:none}
+.a8-live .a8-lines{display:block}
 </style>
 </head>
 <body>
 <main class="a8-page a8-field">
+<canvas class="a8-lines" aria-hidden="true"></canvas>
 <h1><img class="a8-lockup" src="/assets/axis-eight-primary-lockup.svg" alt="Axis Eight (A8)" width="520" height="64"></h1>
 <div class="a8-rule" role="presentation"></div>
 <p class="a8-status"><span>Multi-strategy digital asset manager</span><span class="a8-dot" aria-hidden="true"> · </span><span>Launching Q4 2026</span></p>
 </main>
+<script>
+/* Eight-Line Field, horizontals only: the left boundary travels inward with a digital dissolve.
+   ~6s motion, ~10s silence. No glow, blur, colour or extra lines. Static under reduced motion. */
+(function(){
+  var page=document.querySelector('.a8-page'),cv=document.querySelector('.a8-lines');
+  if(!cv||!cv.getContext||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var ctx=cv.getContext('2d'),W=0,H=0,dpr=1;
+  var Y=[0.8167,0.8458,0.875,0.9042],START=0.5266,COLOR='197,208,220';
+  var MOTION=6,CYCLE=16,STAGGER=0.11,TRAVEL=168,SOFT=90,EDGE=42,CELL=2;
+  var freeze=(location.search.match(/[?&]t=([0-9.]+)/)||[])[1];
+  function size(){dpr=Math.min(window.devicePixelRatio||1,2);W=page.clientWidth;H=page.clientHeight;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
+  function ease(x){return x<0?0:x>1?1:x*x*(3-2*x)}
+  function hash(a,b,c){var n=Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453;return n-Math.floor(n)}
+  function draw(t){
+    ctx.clearRect(0,0,W,H);
+    var k=Math.min(1,W/1280),travel=TRAVEL*k,soft=SOFT*k,edge=EDGE*k,x0=Math.round(W*START);
+    for(var i=0;i<4;i++){
+      var u=t-i*STAGGER,y=Math.round(H*Y[i])+0.5;
+      var pos=u<=0||u>=MOTION?0:(u<3.4?ease(u/3.4):1-ease((u-3.4)/2.6));
+      var amt=u<=0||u>=MOTION?0:Math.min(ease(u/1.2),ease((MOTION-u)/1.6));
+      var front=x0+travel*pos;
+      if(amt<0.002){ctx.fillStyle='rgba('+COLOR+',1)';ctx.fillRect(x0,y-0.5,W-x0,1);continue}
+      var sw=soft*amt,ew=edge*amt,tick=Math.floor(u*14),solid=front+ew+sw;
+      ctx.fillStyle='rgba('+COLOR+',1)';ctx.fillRect(solid,y-0.5,W-solid,1);
+      for(var x=front-ew*0.9;x<solid;x+=CELL){
+        var d=x-front,a;
+        if(d>=ew){a=0.35+0.65*ease((d-ew)/sw);a*=0.9+0.1*hash(Math.floor(x/6),i,tick)}
+        else{var dens=d<0?0.10*(1+d/(ew*0.9)):0.12+0.6*(d/ew);dens*=0.75+0.5*hash(Math.floor(x/9),i+7,Math.floor(u*5));
+             if(hash(Math.floor(x/CELL),i,tick)>dens)continue;a=0.45+0.4*(d<0?0:d/ew)}
+        ctx.fillStyle='rgba('+COLOR+','+a.toFixed(3)+')';
+        var dy=0;if(d<ew*0.6&&hash(Math.floor(x/CELL),i+3,tick)>0.86)dy=(hash(x,i,tick+1)<0.5?-1:1)*(1+Math.floor(hash(x,i+5,tick)*2));
+        ctx.fillRect(x,y-0.5+dy,CELL,1);
+      }
+    }
+  }
+  var t0=performance.now(),timer=0;
+  function frame(now){
+    var t=((now-t0)/1000)%CYCLE;
+    draw(t);
+    if(t<MOTION+3*STAGGER+0.1)requestAnimationFrame(frame);
+    else timer=setTimeout(function(){requestAnimationFrame(frame)},(CYCLE-t)*1000);
+  }
+  size();page.classList.add('a8-live');
+  if(freeze!==undefined){draw(parseFloat(freeze));addEventListener('resize',function(){size();draw(parseFloat(freeze))});return}
+  addEventListener('resize',function(){size();draw(((performance.now()-t0)/1000)%CYCLE)});
+  t0=performance.now()-(CYCLE-2)*1000; /* first run starts 2s after load */
+  requestAnimationFrame(frame);
+})();
+</script>
 </body>
 </html>
